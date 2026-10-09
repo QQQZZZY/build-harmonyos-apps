@@ -38,7 +38,7 @@ test('real CLI JSON suffixes and PNG trust boundary', () => {
 
 test('device workflow rejects ambiguous and unknown arguments before executing', async () => {
   let commands = 0;
-  const fake = { device: async () => 'fixture', ui: async () => { commands++; return {}; } };
+  const fake = { gesture: DevEco.prototype.gesture, device: async () => 'fixture', ui: async () => { commands++; return {}; } };
   const w = new Workflows(fake);
   await assert.rejects(w.call('hos_tap', {id:'button',x:10,y:10}), /OR/);
   await assert.rejects(w.call('hos_tap', {x:10}), /integer/);
@@ -50,7 +50,7 @@ test('device workflow rejects ambiguous and unknown arguments before executing',
 test('loopback preview enforces token/origin, applies device input and cleans its port/files', async () => {
   const operations = [];
   const adapter = {
-    device: async () => 'fixture',
+    gesture: DevEco.prototype.gesture, device: async () => 'fixture',
     screenshot: async (_serial, path) => { await writeFile(path,png); return {buffer:png,width:1,height:1}; },
     ui: async (...args) => { operations.push(args); return {stdout:'done'}; }
   };

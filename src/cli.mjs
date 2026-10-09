@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
-import { DevEco, runCommand, NATIVE, parseJSON } from './adapter.mjs';
+import { DevEco, runCommand, NATIVE, parseJSON, cancelCommands } from './adapter.mjs';
 import { Preview, captureWindows } from './preview.mjs';
 
 const usage = `serve-hos [--device SERIAL] [--source auto|sck|hdc] [--window-id ID] [--port 3200] [--fps 10] [--interval-ms 1000]
@@ -27,7 +27,7 @@ try {
       const result = await preview.start(options);
       console.log(JSON.stringify(result, null, 2));
       let stopping = false;
-      const close = async () => { if (stopping) return; stopping = true; await preview.stop(); process.exit(0); };
+      const close = async () => { if (stopping) return; stopping = true; adapter.close(); await cancelCommands(); await preview.stop(); process.exit(0); };
       process.on('SIGINT', close); process.on('SIGTERM', close);
     }
   }

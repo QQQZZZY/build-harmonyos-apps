@@ -1,6 +1,6 @@
 {
   "name": "build-harmonyos-apps",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Local macOS HarmonyOS workflows with official DevEco CLI, HDC and browser preview.",
   "author": {
     "name": "qu"

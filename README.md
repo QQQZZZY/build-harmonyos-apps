@@ -19,7 +19,7 @@ node src/cli.mjs windows
 node src/cli.mjs --device SERIAL
 ```
 
-打开打印出的完整 `http://127.0.0.1:3200/#...` 地址。令牌仅用于这一进程，重启后变化。默认 `auto` 优先捕获唯一可见模拟器窗口；多窗口时显式选择 `--window-id`。CLI 独立于 Codex 使用。
+打开打印出的完整 `http://127.0.0.1:3200/#...` 地址。令牌仅用于这一进程，重启后变化。默认 `auto` 按所选设备的名称和窗口 PID 匹配可见模拟器窗口；无法唯一匹配时可显式选择 `--window-id`。CLI 独立于 Codex 使用。
 
 ```sh
 # 指定窗口 / 强制使用 HDC 降级
@@ -33,9 +33,9 @@ serve-hos --device SERIAL
 
 ScreenCaptureKit 需要已有录屏权限。`doctor`、`windows` 和默认启动只读检查权限；缺少权限时 `auto` 使用 HDC。用户需要授权时可运行 `node src/cli.mjs permission`，在 macOS 系统设置中完成授权，再按系统要求重启宿主和捕获进程。预览不会捕获音频、麦克风或整个桌面。
 
-ScreenCaptureKit 的窗口图包含外壳和工具栏。先在浏览器中拖选实际触摸屏区域，对照当前 HDC 截图确认方向和内容，再轻触一个已知无损控件并检查状态变化。窗口或设备尺寸变化会降级 HDC；重新启用 SCK 需停止/启动并校准。捕获区域或缩放 metadata 变化会清除校准。HDC 截图直接使用设备坐标，可立即操作。
+ScreenCaptureKit 的窗口图包含外壳和工具栏。先在浏览器中拖选实际触摸屏区域，对照当前 HDC 截图确认方向和内容，再轻触一个已知无损控件并检查状态变化。窗口或设备尺寸变化会降级 HDC；恢复后使用网页“重试采集”或 `hos_preview_retry` 重新选择 SCK 并校准，URL 和令牌保持不变。捕获区域或缩放 metadata 变化会清除校准。HDC 截图直接使用设备坐标，可立即操作。
 
-窗口绑定会检查窗口所属进程 PID 和 CLI 实际启动参数对应的模拟器名称，再关联设备 serial。无法确认对应关系时 `auto` 使用 HDC，显式 `sck` 启动返回错误；本版核验的启动形式是 `Emulator -start NAME -bootmode snapshot`，其他工具版本或手工启动形式需后续验证。
+模拟器 serial 以连接设备的唯一名称匹配为准，避免 CLI 1.3.0 列表按顺序猜测造成双设备编号错配；不确定的匹配不会绑定窗口或显示场景控制。窗口绑定会检查窗口所属进程 PID 和 CLI 实际启动参数对应的模拟器名称，再关联设备 serial。无法确认对应关系时 `auto` 使用 HDC，显式 `sck` 启动返回错误；本版核验的启动形式是 `Emulator -start NAME -bootmode snapshot`，其他工具版本或手工启动形式需后续验证。
 
 ## Codex 插件
 
@@ -47,11 +47,11 @@ codex plugin list --marketplace harmonyos-local --json
 
 当前包同时提供根目录 `plugin.json` / `mcp.json` 和 Codex 兼容清单 `.codex-plugin/plugin.json` / `.mcp.json`。安装后重新载入插件或开启新聊天，使宿主重新发现工具。本地安装和 SDK 握手已实测；当前聊天不会自动获得新工具。
 
-插件包含两个 stdio MCP；设备服务共 21 个工具：
+插件包含两个 stdio MCP；设备服务共 29 个工具：
 
 | 服务 | 用途 |
 | --- | --- |
-| `harmonyos` | `hos_*` 工具：自检、设备/模拟器、构建、运行、安装、启动、日志、截图、UI 树、点击、滑动、输入、Back/Home、预览与校准 |
+| `harmonyos` | `hos_*` 工具：自检、设备/模拟器、构建、运行、安装、启动、日志、截图、UI 树、轻触/双击/长按/滑动/拖拽、输入、Back/Home、场景控制、事件、预览切换/重试与校准 |
 | `deveco-code` | 原样调用 `devecocli serve mcp`，提供官方 `check` 与 LSP 工具 |
 
 `harmonyos` 的构建/运行工具接受显式绝对项目路径。官方 `deveco-code` 以 `PROJECT_PATH` 或宿主工作目录为项目根；使用官方语法工具前需在目标 HarmonyOS 项目启动，或按 CLI 的说明配置 `PROJECT_PATH`。这项项目根限制属于官方 MCP，设备工作流不依赖它。
@@ -63,6 +63,18 @@ codex mcp add harmonyos -- node /absolute/path/to/build-harmonyos-apps/scripts/s
 ```
 
 选择插件或单独 MCP 中一种，避免重复工具。MCP 启动脚本仅在缺少依赖/原生 helper 时安装锁定的 Node 依赖并编译；诊断走 stderr，stdout 保留给 MCP。标准输出已用官方 SDK 握手验证。
+
+## 浏览器工作台（0.2.0）
+
+- 左栏：搜索已连接设备与本地模拟器，启动/停止已有模拟器，切换活动设备。没有连接设备时也可打开工作台；每个服务同时只预览一个活动设备。
+- 中央：正常显示裁剪后的触摸屏；校准时显示完整窗口。提供 Home/Back、真实设备 PNG 截图、适应窗口/缩放、采集来源重试。支持轻触、双击/长按模式、按住长按、滑动/拖拽模式和滚轮映射滑动；文本框支持中文组合输入与粘贴，点击发送后输入设备。
+- 右栏：UI 树搜索、节点属性、设备像素 bounds 高亮和按 id 操作；有界日志按 Bundle、关键词、等级与崩溃类型过滤；操作记录显示结果与耗时。命令成功仍需通过画面/UI 树核验实际状态。
+- 应用：选择或拖入一个 `.hap` 安装包，浏览器入口最大 128 MiB；可手填 Bundle/Ability 启动。显示的是本进程记录的最近安装/启动信息，**不是当前前台应用**；HAP 缺少可识别的 module.json 时需手填；损坏或非法元数据会拒绝安装。没有删除或卸载入口。
+- 模拟器场景：旋转、电量/充电状态、经纬度、步数、音量与息屏/唤醒。网页仅向 `deviceType=foldable` 提供展开/半展开/合拢，其他折叠型号的状态映射尚未验证。MCP `hos_emulator_control` 另提供官方 CLI 的其他传感器和场景参数，每次只传一个设置项。
+
+切换设备、重试采集和场景改变会更新 `session`。网页清空旧帧、控件、文本与日志，收到同会话的新帧后恢复画面输入；安装/启动和电源控制不依赖新鲜画面。MCP 在操作预览坐标时使用 `hos_preview_status` 返回的 `session`，旧会话请求会被拒绝。`hos_preview_select` / `hos_preview_retry` 保留现有服务地址。
+
+`hos_run` 支持 `apply:true` 或 `hotReloadApply:true`，二者互斥，并必须提供 `changeFile`：目标项目 `.hvigor/` 下已存在的变更清单文件名。不能同时使用 `skipBuild`。`apply` 增量编译/部署并重启；`hotReloadApply` 只向已经运行的官方热重载 watch 会话应用变更，不会自行启动后台会话。真实热重载效果须在目标项目另行验收。
 
 ## 环境覆盖
 
@@ -85,9 +97,9 @@ node scripts/e2e.mjs --project /absolute/ServeHosFixture --device SERIAL --sourc
 
 实际验收、证据及未验证项以 [docs/validation.md](docs/validation.md) 为准。架构与验收标准见 [docs/architecture.md](docs/architecture.md)，官方能力/复用核验见 [docs/research.md](docs/research.md)。
 
-本版采用本地 JPEG 帧传输，默认上限 10 fps；静态窗口保持最后完整帧，独立窗口状态心跳判断健康。最小化、关闭、完全移出屏幕、捕获失效，以及操作后窗口无新帧时降级 HDC。恢复窗口后需要停止/重启预览重试 SCK。后台模拟器可能停止重绘，不能仅凭窗口存在认为画面代表最新设备状态。
+本版采用本地 JPEG 帧传输，默认目标 10 fps（可配置 1–30 fps）；静态窗口保持最后完整帧，独立窗口状态心跳判断健康。最小化、关闭、完全移出屏幕、捕获失效，以及操作后窗口无新帧时降级 HDC。恢复窗口后通过网页或 `hos_preview_retry` 明确重试 SCK，并重新校准。后台模拟器可能停止重绘，不能仅凭窗口存在认为画面代表最新设备状态。
 
-截图轮询不会重叠，实际帧率受 DevEco CLI/HDC 截图耗时影响。工具针对默认设备显示屏；本版未提供远程公网访问、视频音频编码、设备端 HOScrcpy 和多显示屏交互。真实设备只适用 HDC 预览路径。macOS 14 与 Intel 运行情况尚需验证。
+浏览器使用 ETag 条件取帧；同会话同帧返回 304，来源/会话切换未取得有效帧时返回不可用。截图轮询不会重叠，实际帧率受 DevEco CLI/HDC 截图耗时影响。工具针对默认设备显示屏；本版未提供远程公网访问、视频音频编码、设备端 HOScrcpy 和多显示屏交互。真实设备只适用 HDC 预览路径。macOS 14 与 Intel 运行情况尚需验证。
 
 ## 官方内容与许可证
 
