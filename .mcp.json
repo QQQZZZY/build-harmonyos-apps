@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "harmonyos": {
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/scripts/start-mcp.mjs"]
+    },
+    "deveco-code": {
+      "command": "devecocli",
+      "args": ["serve", "mcp"]
+    }
+  }
+}

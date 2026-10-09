@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>serve-hos · HarmonyOS</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><div><strong>serve-hos</strong><span>HarmonyOS 设备预览</span></div><span id="connection" role="status">正在连接…</span></header>
+<main>
+  <section class="screen" aria-label="设备画面"><canvas id="screen" tabindex="0" aria-label="设备画面，点击轻触，拖动滑动"></canvas><p id="hint">等待设备画面</p></section>
+  <aside>
+    <h1>设备控制</h1><dl id="metadata"></dl><p id="warning" role="status"></p>
+    <button id="calibrate">校准屏幕区域</button><p class="note">校准时，在画面中拖选实际触摸屏区域，排除外壳和工具栏。窗口大小或设备方向变化后需重新校准。</p>
+    <form id="text-form"><label for="text">输入到当前焦点</label><textarea id="text" maxlength="2000" placeholder="先点击设备中的输入框"></textarea><button>发送文本</button></form>
+    <div class="actions"><button id="tree">读取 UI 树</button><button id="download">保存画面</button></div>
+    <button id="back">返回 / 收起键盘</button>
+    <p id="message" role="status" aria-live="polite"></p>
+    <details><summary>UI 树</summary><pre id="output"></pre></details>
+    <p class="note">关闭页面不会停止服务。结束使用后，在启动服务的终端按 Ctrl+C，或调用 hos_preview_stop。</p>
+  </aside>
+</main><script type="module" src="/app.js"></script>
+</body></html>

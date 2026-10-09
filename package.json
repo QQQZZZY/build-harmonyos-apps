@@ -1,0 +1,24 @@
+{
+  "name": "build-harmonyos-apps",
+  "version": "0.1.2",
+  "private": true,
+  "type": "module",
+  "description": "Local macOS HarmonyOS development tools and browser preview for Codex",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "serve-hos": "src/cli.mjs"
+  },
+  "scripts": {
+    "build": "node scripts/build-native.mjs",
+    "start": "node src/cli.mjs",
+    "mcp": "node src/mcp.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "doctor": "node src/cli.mjs doctor"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1"
+  }
+}
