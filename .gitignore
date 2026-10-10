@@ -1,5 +1,5 @@
 node_modules/
-native/bin/
+**/native/bin/
 .DS_Store
 *.log
 test-results/

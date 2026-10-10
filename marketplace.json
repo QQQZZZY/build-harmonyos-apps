@@ -3,7 +3,7 @@
   "plugins": [
     {
       "name": "build-harmonyos-apps",
-      "source": "./",
+      "source": "./build-harmonyos-apps",
       "version": "0.2.1",
       "description": "Build and debug HarmonyOS apps on macOS with official DevEco CLI, HDC and a local browser device preview.",
       "displayName": "Build HarmonyOS Apps",
