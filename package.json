@@ -1,6 +1,6 @@
 {
   "name": "build-harmonyos-apps",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "description": "Local macOS HarmonyOS development tools and browser preview for Codex",

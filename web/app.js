@@ -24,10 +24,11 @@ function applyStatus(next) {
   if (status && next.session !== status.session) resetSession();
   status = next; connected = true;
   el('device-name').textContent = deviceName();
-  el('connection').textContent = busy ? '执行中' : !next.active ? '已停止' : next.stale ? '画面暂停' : image && frameSession === next.session ? 'Live' : '等待画面';
-  el('connection').classList.toggle('live', ready());
+  el('empty').querySelector('strong').textContent = next.device ? '等待设备画面' : '选择一台设备';
+  el('empty').querySelector('span').textContent = next.device ? '画面准备好后即可操作' : '从左侧选择设备，或启动模拟器';
   el('session-label').textContent = `会话 ${next.session ?? '—'}`;
   el('warning').textContent = next.warning || '';
+  el('warning').hidden = !next.device;
   el('metadata').replaceChildren();
   for (const [label, value] of [['设备', deviceName()], ['来源', next.source === 'sck' ? 'ScreenCaptureKit' : next.source === 'hdc' ? 'HDC' : '—'], ['尺寸', next.deviceSize ? `${next.deviceSize.width} × ${next.deviceSize.height}` : '—'], ['采集', next.capturedAt ? new Date(next.capturedAt).toLocaleTimeString() : '—']]) {
     const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = label; dd.textContent = value || '—'; el('metadata').append(dt, dd);
@@ -37,7 +38,7 @@ function applyStatus(next) {
   controls(); draw();
 }
 function controls() {
-  el('connection').textContent = busy ? '执行中' : !connected ? '连接中断' : !status?.active ? '已停止' : status.stale ? '画面暂停' : image && frameSession === status.session ? 'Live' : '等待画面';
+  el('connection').textContent = busy ? '执行中' : !connected ? '连接中断' : !status?.active ? '已停止' : !status.device ? '未选择设备' : status.stale ? '画面暂停' : image && frameSession === status.session ? 'Live' : '等待画面';
   el('connection').classList.toggle('live', ready());
   document.querySelectorAll('[data-selected]').forEach(control => { control.disabled = !status?.device || !connected || busy || switching; });
   const emulator = currentEmulator();
@@ -47,9 +48,12 @@ function controls() {
   for (const id of ['node-tap', 'node-longpress']) el(id).disabled = !ready() || !selected?.id;
   el('clear-selection').disabled = busy || switching;
   el('calibrate').disabled = busy || switching || !image || status?.stale || status?.source !== 'sck';
-  el('calibrate').textContent = selecting ? '取消校准' : '校准';
+  el('calibrate').setAttribute('aria-label',selecting ? '取消校准' : '校准');
+  el('calibrate').setAttribute('aria-pressed',String(selecting));
+  el('calibrate').title = selecting ? '取消校准' : '校准触摸屏';
+  canvas.classList.toggle('calibrating',selecting || status?.source === 'sck' && !status?.crop);
   el('retry').disabled = busy;
-  el('hint').textContent = selecting ? '拖选实际触摸屏区域，排除外壳和工具栏' : switching ? '切换设备中，输入已停用' : status?.stale ? '画面暂停，输入已停用' : !status?.crop ? '先校准触摸屏区域' : frameSession !== status?.session ? '等待当前设备画面' : '点击轻触 · 按住长按 · 滚轮滑动';
+  el('hint').textContent = selecting ? '拖选实际触摸屏区域，排除外壳和工具栏' : switching ? '切换设备中，输入已停用' : !status?.device ? '选择设备后开始预览' : status.stale ? '画面暂停，输入已停用' : !status.crop ? '先校准触摸屏区域' : frameSession !== status.session ? '等待当前设备画面' : '点击轻触 · 按住长按 · 滚轮滑动';
 }
 async function updateStatus() { try { applyStatus(await (await api('status')).json()); } catch (error) { connected = false; if (status) status.stale = true; el('connection').textContent = '连接中断'; controls(); message(error.message); } }
 async function action(value) {
@@ -66,6 +70,8 @@ async function action(value) {
   finally { busy = false; switching = false; controls(); renderDevices(); }
 }
 function renderApplication(application, fill = false) {
+  el('app-title').textContent = application?.bundle || '尚无应用记录';
+  el('app-caption').textContent = application ? [application.version,'最近安装 / 启动'].filter(Boolean).join(' · ') : '安装与启动';
   el('application').replaceChildren();
   const fields = application ? [['Bundle',application.bundle],['Ability',application.ability],['版本',application.version],['安装',application.installedAt ? new Date(application.installedAt).toLocaleString() : null],['启动',application.launchedAt ? new Date(application.launchedAt).toLocaleString() : null]] : [['应用','暂无记录']];
   for (const [label,value] of fields) {
@@ -110,7 +116,7 @@ viewport.addEventListener('drop', event => {
 function crop() { return !selecting && status?.crop ? status.crop : { x: 0, y: 0, width: 1, height: 1 }; }
 function fit() {
   if (!image) return;
-  const viewport = el('viewport'), scale = el('zoom').value === 'fit' ? Math.min((viewport.clientWidth - 24) / canvas.width, (viewport.clientHeight - 24) / canvas.height) : Number(el('zoom').value);
+  const viewport = el('viewport'), scale = el('zoom').value === 'fit' ? Math.min((viewport.clientWidth - 64) / canvas.width, (viewport.clientHeight - 40) / canvas.height) : Number(el('zoom').value);
   canvas.style.width = `${Math.max(1, canvas.width * scale)}px`; canvas.style.height = `${Math.max(1, canvas.height * scale)}px`;
 }
 function draw() {
@@ -237,17 +243,23 @@ async function loadDevices() {
 }
 function renderDevices() {
   const query = el('device-search').value.toLowerCase();
-  for (const [listId,list] of [['devices',deviceData.devices || []],['emulators',deviceData.emulators || []]]) {
+  const types = {foldable:'折叠屏',widefold:'阔折叠屏',phone:'手机',tablet:'平板'}, states = {running:'运行中',stopped:'未启动'};
+  const connectedDevices = (deviceData.devices || []).filter(device=>!(deviceData.emulators || []).some(emulator=>emulator.serial && emulator.serial === device.serial));
+  el('connected-heading').hidden = el('devices').hidden = !connectedDevices.length;
+  for (const [listId,list] of [['devices',connectedDevices],['emulators',deviceData.emulators || []]]) {
     el(listId).replaceChildren();
-    for (const device of list.filter(d => `${d.name || ''} ${d.serial || ''} ${d.deviceType || ''}`.toLowerCase().includes(query))) {
-      const card = document.createElement('div'), button = document.createElement('button'), title = document.createElement('strong'), description = document.createElement('small');
+    for (const device of list.filter(d => `${d.name || ''} ${d.serial || ''} ${d.deviceType || ''} ${types[d.deviceType] || ''} ${states[d.status] || ''}`.toLowerCase().includes(query))) {
+      const card = document.createElement('div'), button = document.createElement('button'), title = document.createElement('strong'), description = document.createElement('small'), visual = document.createElement('span'), copy = document.createElement('span');
       card.className = `device-card${device.serial && device.serial === status?.device ? ' selected' : ''}`; button.className = 'device-select';
-      title.textContent = device.name || device.serial || '设备'; description.textContent = listId === 'devices' ? device.serial : `${device.status || '—'}${device.deviceType ? ` · ${device.deviceType}` : ''}`; button.append(title,description);
+      visual.className = 'device-visual'; visual.dataset.kind = device.deviceType || ''; visual.setAttribute('aria-hidden','true'); copy.className = 'device-copy';
+      const type = types[device.deviceType] || device.deviceType;
+      const state = states[device.status] || device.status || '—';
+      title.textContent = device.name || device.serial || '设备'; description.textContent = listId === 'devices' ? device.serial : `${state}${type ? ` · ${type}` : ''}`; copy.append(title,description); button.append(visual,copy);
       button.disabled = busy || !device.serial; button.onclick = () => action({action:'device_select',device:device.serial}).catch(() => {}); card.append(button);
       if (listId === 'emulators') {
-        const row = document.createElement('div'); row.className = 'row';
+        const row = document.createElement('div'); row.className = 'row device-actions';
         for (const [label,kind] of [['启动','emulator_start'],['停止','emulator_stop']]) {
-          const control = document.createElement('button'); control.textContent = label; control.disabled = busy || (kind === 'emulator_start' ? device.status !== 'stopped' : device.status !== 'running'); control.onclick = async () => { try { await action({action:kind,name:device.name}); await loadDevices(); } catch {} }; row.append(control);
+          const control = document.createElement('button'); control.textContent = label; control.hidden = kind === 'emulator_start' ? device.status !== 'stopped' : device.status !== 'running'; control.disabled = busy || (kind === 'emulator_start' ? device.status !== 'stopped' : device.status !== 'running'); control.onclick = async () => { try { await action({action:kind,name:device.name}); await loadDevices(); } catch {} }; row.append(control);
         }
         card.append(row);
       }
