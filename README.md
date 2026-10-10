@@ -64,6 +64,18 @@ codex mcp add harmonyos -- node /absolute/path/to/build-harmonyos-apps/scripts/s
 
 选择插件或单独 MCP 中一种，避免重复工具。MCP 启动脚本仅在缺少依赖/原生 helper 时安装锁定的 Node 依赖并编译；诊断走 stderr，stdout 保留给 MCP。标准输出已用官方 SDK 握手验证。
 
+## ZCode 插件
+
+本仓库同时提供 ZCode 插件适配：ZCode 清单在 [`.zcode-plugin/plugin.json`](.zcode-plugin/plugin.json)（两个 MCP 服务内联声明，`harmonyos` 通过 `${CLAUDE_PLUGIN_ROOT}` 定位 `scripts/start-mcp.mjs`），本地市场目录为根级 [`marketplace.json`](marketplace.json)（市场名 `build-harmonyos-apps`）。Skills 与 MCP 服务由 Codex / ZCode 两端共享，功能一致。
+
+在 ZCode Desktop 中安装：
+
+1. 打开 **插件市场 → 添加 → 添加插件市场**，粘贴本仓库根目录的绝对路径（即 `marketplace.json` 所在目录）。
+2. 在该市场中选择 **Build HarmonyOS Apps** 并安装。
+3. 新建任务试用：例如「使用 Build HarmonyOS Apps 构建、运行并验证当前鸿蒙项目」。
+
+运行依赖与 Codex 侧相同：Node.js 22+、已安装的 DevEco CLI 和配套 HarmonyOS SDK；窗口捕获另需 macOS 14+ 与 Xcode Command Line Tools。首次启动 `harmonyos` MCP 时若缺少 Node 依赖会自动联网 `npm ci`。`deveco-code` 服务需要 PATH 上有 `devecocli`，缺失只影响该服务，`harmonyos` 的 `hos_*` 工具不受影响。
+
 ## 浏览器工作台（0.2.1）
 
 - 界面：深色桌面布局、设备轮廓与选中状态、带名称的图标工具栏；应用和诊断入口默认收起，定位/传感器位于场景次级分组。连接中的本地模拟器只在本地列表出现一次。

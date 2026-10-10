@@ -1,0 +1,19 @@
+{
+  "name": "build-harmonyos-apps",
+  "plugins": [
+    {
+      "name": "build-harmonyos-apps",
+      "source": "./",
+      "version": "0.2.1",
+      "description": "Build and debug HarmonyOS apps on macOS with official DevEco CLI, HDC and a local browser device preview.",
+      "displayName": "Build HarmonyOS Apps",
+      "displayName_i18n": {
+        "zh-CN": "构建、运行与调试鸿蒙应用"
+      },
+      "description_i18n": {
+        "zh-CN": "macOS 本地 HarmonyOS 工作流，复用 DevEco CLI 与官方 Skill，提供设备 MCP、浏览器预览及 HDC 截图降级。"
+      },
+      "category": "developer-tools"
+    }
+  ]
+}
